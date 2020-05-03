@@ -135,6 +135,10 @@ class TestFilesize:
         assert isinstance((Filesize() * float32(0.3))._bits, int)
         assert isinstance(Filesize(uint8(8))._bits, int)
 
+    def test_show(self):
+        assert Filesize('1024KB').show('iec.1B') == '1000.0KiB'
+        assert Filesize('1024KB').show('si.3B') == '1.024MB'
+
     def test_show_iec_bytes(self):
         assert Filesize('2.34GiB').show_iec_bytes() == '2.34GiB'
 

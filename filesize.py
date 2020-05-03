@@ -42,6 +42,7 @@ class Filesize:
         self.exp = 1024
         self.postfix = 'iB'
         self.prefixes = self.PREFIX
+        self.ndigits = 2
 
     def floor(self, lit):
         return self._bits // get_base(lit)
@@ -51,7 +52,7 @@ class Filesize:
             lit = get_base(lit)
         return round(self._bits / lit, ndigits)
 
-    def _show(self, base, exp, postfix, prefixes):
+    def _show(self, base, exp, postfix, prefixes, ndigits):
         buff = self._bits // base
         i = 0
         while buff >= exp:
@@ -60,19 +61,44 @@ class Filesize:
             i += 1
             if i >= self.MAX_PREFIX:
                 break
-        return str(self.round(base, 2)) + prefixes[i] + postfix
+        return str(self.round(base, ndigits)) + prefixes[i] + postfix
+
+    def show(self, form=None):
+        if 'iec' in form:
+            exp = 1024
+            postfix = 'iB'
+        elif 'si' in form:
+            exp = 1000
+            postfix = 'B'
+        else:
+            exp = self.exp
+            postfix = self.postfix
+
+        ndigits_str = re.findall('[0-9]+', form)[0]
+        ndigits = int(ndigits_str) if len(ndigits_str) >= 0 else None
+
+        if form is None or len(form) == 0:
+            base = self.base
+        elif form[-1] == 'B':
+            base = 8
+        elif form[-1] == 'b':
+            base = 1
+        else:
+            base = self.base
+
+        return self._show(base, exp, postfix, self.prefixes, ndigits)
 
     def show_iec_bytes(self):
-        return self._show(8, 1024, 'iB', self.PREFIX)
+        return self._show(8, 1024, 'iB', self.PREFIX, 2)
 
     def show_iec_bits(self):
-        return self._show(1, 1024, 'ib', self.PREFIX)
+        return self._show(1, 1024, 'ib', self.PREFIX, 2)
 
     def show_si_bytes(self):
-        return self._show(8, 1000, 'B', self.PREFIX)
+        return self._show(8, 1000, 'B', self.PREFIX, 2)
 
     def show_si_bits(self):
-        return self._show(1, 1000, 'b', self.PREFIX)
+        return self._show(1, 1000, 'b', self.PREFIX, 2)
 
     def __repr__(self):
         return self._show(self.base, self.exp, self.postfix, self.prefixes)
