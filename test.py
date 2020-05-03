@@ -7,12 +7,6 @@ from filesize import *
 
 class TestFilesize:
 
-    def setUp(self):
-        pass
-
-    def teardown(self):
-        pass
-
     def test_get_base(self):
         assert get_base('Kb') == 1000
         assert get_base('Mb') == 1000 ** 2
@@ -79,6 +73,14 @@ class TestFilesize:
         assert Filesize(2.81, 'GiB').round('GiB', 2) == 2.81
         assert Filesize('117.43Mb').round('Mb', 2) == 117.43
 
+        assert Filesize(2 ** 30) == Filesize('1GiB')
+        assert Filesize(2 ** 40) == Filesize('1TiB')
+        assert Filesize(2 ** 50) == Filesize('1PiB')
+        assert Filesize(2 ** 60) == Filesize('1EiB')
+        assert Filesize(2 ** 70) == Filesize('1ZiB')
+        assert Filesize(2 ** 80) == Filesize('1YiB')
+        assert Filesize(2 ** 90) == Filesize('1024YiB')
+
     def test_floor(self):
         assert Filesize('1024KB').floor('KiB') == 1000
 
@@ -122,10 +124,11 @@ class TestFilesize:
     def test_rmul(self):
         assert (0.5 * Filesize('1GiB')).round('GiB', 2) == 0.5
 
-    def test_div(self):
+    def test_truediv(self):
         assert (Filesize('Gi') / 2).round('Mi', 2) == 512.0
+        assert (Filesize('Gi') / 2.0).round('Mi', 2) == 512.0
 
-    def test_floor_div(self):
+    def test_floordiv(self):
         assert (Filesize('Gi') // 2).round('Mi', 2) == 512.0
 
     def test_check_types(self):
@@ -143,6 +146,22 @@ class TestFilesize:
 
     def test_show_si_bits(self):
         assert Filesize('1.11Kb').show_si_bits() == '1.11Kb'
+
+    def test_lt(self):
+        assert (Filesize(1) < Filesize(9)) is True
+        assert (Filesize(1) < Filesize(1)) is False
+        assert (Filesize(9) < Filesize(1)) is False
+
+        assert (Filesize(1) < Filesize(2) < Filesize(3)) is True
+        assert (Filesize(1) < Filesize(3) < Filesize(2)) is False
+        assert (Filesize(2) < Filesize(1) < Filesize(3)) is False
+        assert (Filesize(1) < Filesize(9) < Filesize(9)) is False
+        assert (Filesize(1) < Filesize(1) < Filesize(9)) is False
+
+    def test_gt(self):
+        assert (Filesize(9) > Filesize(1)) is True
+        assert (Filesize(1) > Filesize(1)) is False
+        assert (Filesize(1) > Filesize(9)) is False
 
     def test_eq(self):
         assert (Filesize('1024K') == Filesize('1000Ki')) is True

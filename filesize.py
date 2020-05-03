@@ -7,30 +7,27 @@ def get_base(lit):
     base = 1 if 'b' in lit else 8
     exp = 1024 if 'i' in lit else 1000
 
-    if 'K' in lit:
-        pow = 1
-    elif 'M' in lit:
-        pow = 2
-    elif 'G' in lit:
-        pow = 3
-    elif 'T' in lit:
-        pow = 4
-    elif 'P' in lit:
-        pow = 5
+    for index, prefix in enumerate(Filesize.PREFIX):
+        if prefix != '' and prefix in lit:
+            power = index
+            break
     else:
-        pow = 0
+        power = 0
 
-    return base * exp ** pow
+    return base * exp ** power
 
 
 def split_literal(text):
-    num_list = re.findall('^[0-9\.]+', text)
+    num_list = re.findall('^[0-9.]+', text)
     return 1 if len(num_list) == 0 else float(num_list[0]), re.findall('[a-zA-Z]+$', text)[0]
 
 
 class Filesize:
 
-    PREFIX = ['', 'K', 'M', 'G', 'T', 'P']
+    PREFIX     = ['',    'K',    'M',    'G',    'T',    'P',    'E',     'Z',     'Y']
+    PREFIX_IEC = ['', 'kibi', 'mebi', 'gibi', 'tebi', 'pebi', 'exbi',  'zebi',  'yobi']
+    PREFIX_SI  = ['', 'kilo', 'mega', 'giga', 'tera', 'peta',  'exa', 'zetta', 'yotta']
+    MAX_PREFIX = len(PREFIX) - 1
 
     def __init__(self, a=0, b=None):
         if isinstance(a, str):
@@ -41,6 +38,11 @@ class Filesize:
 
         self._bits = int(a * get_base(b))
 
+        self.base = 8
+        self.exp = 1024
+        self.postfix = 'iB'
+        self.prefixes = self.PREFIX
+
     def floor(self, lit):
         return self._bits // get_base(lit)
 
@@ -49,48 +51,31 @@ class Filesize:
             lit = get_base(lit)
         return round(self._bits / lit, ndigits)
 
-    def show_iec_bytes(self):
-        buff = self._bits // 8
-        base = 8
+    def _show(self, base, exp, postfix, prefixes):
+        buff = self._bits // base
         i = 0
-        while buff >= 1024:
-            buff = buff >> 10
-            base = base << 10
+        while buff >= exp:
+            buff /= exp
+            base *= exp
             i += 1
-        return str(self.round(base, 2)) + self.PREFIX[i] + 'iB'
+            if i >= self.MAX_PREFIX:
+                break
+        return str(self.round(base, 2)) + prefixes[i] + postfix
+
+    def show_iec_bytes(self):
+        return self._show(8, 1024, 'iB', self.PREFIX)
 
     def show_iec_bits(self):
-        buff = self._bits
-        base = 1
-        i = 0
-        while buff >= 1024:
-            buff = buff >> 10
-            base = base << 10
-            i += 1
-        return str(self.round(base, 2)) + self.PREFIX[i] + 'ib'
+        return self._show(1, 1024, 'ib', self.PREFIX)
 
     def show_si_bytes(self):
-        buff = self._bits // 8
-        base = 8
-        i = 0
-        while buff >= 1000:
-            buff /= 1000
-            base *= 1000
-            i += 1
-        return str(self.round(base, 2)) + self.PREFIX[i] + 'B'
+        return self._show(8, 1000, 'B', self.PREFIX)
 
     def show_si_bits(self):
-        buff = self._bits
-        base = 1
-        i = 0
-        while buff >= 1000:
-            buff /= 1000
-            base *= 1000
-            i += 1
-        return str(self.round(base, 2)) + self.PREFIX[i] + 'b'
+        return self._show(1, 1000, 'b', self.PREFIX)
 
     def __repr__(self):
-        return self.show_iec_bytes()
+        return self._show(self.base, self.exp, self.postfix, self.prefixes)
 
     def __add__(self, value):
         if isinstance(value, Filesize):
@@ -116,8 +101,32 @@ class Filesize:
     def __rmul__(self, value):
         return Filesize(int(value * self._bits), 'b')
 
-    def __div__(self, value):
+    def __truediv__(self, value):
         return Filesize(int(self._bits / value), 'b')
 
-    def __floordiv__(self):
+    def __floordiv__(self, value):
         return Filesize(int(self._bits // value), 'b')
+
+    def __lt__(self, value):
+        assert isinstance(value, Filesize)
+        return self._bits < value._bits
+
+    def __le__(self, value):
+        assert isinstance(value, Filesize)
+        return self._bits <= value._bits
+
+    def __gt__(self, value):
+        assert isinstance(value, Filesize)
+        return self._bits > value._bits
+
+    def __ge__(self, value):
+        assert isinstance(value, Filesize)
+        return self._bits >= value._bits
+
+    def __eq__(self, value):
+        assert isinstance(value, Filesize)
+        return self._bits == value._bits
+
+    def __ne__(self, value):
+        assert isinstance(value, Filesize)
+        return self._bits != value._bits
